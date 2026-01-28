@@ -1,6 +1,6 @@
 document.addEventListener('DOMContentLoaded', () => {
     // --- State & Elements ---
-    const tabs = document.querySelectorAll('.tab-btn');
+    const tabs = document.querySelectorAll('.feature-btn');
     const tabContents = document.querySelectorAll('.tab-content');
 
     // Resizer Elements
@@ -25,10 +25,20 @@ document.addEventListener('DOMContentLoaded', () => {
     const fixerIconEl = document.getElementById('fixer-icon');
     const fixDownloadBtn = document.getElementById('fix-download-btn');
 
+    // Merger Elements
+    const mergerZone = document.getElementById('merger-drop-zone');
+    const mergerInput = document.getElementById('merger-input');
+    const mergerWorkspace = document.getElementById('merger-workspace');
+    const mergerFileList = document.getElementById('merger-file-list');
+    const mergeBtn = document.getElementById('merge-btn');
+    const mergerResetBtn = document.getElementById('merger-reset-btn');
+    const resizeResetBtn = document.getElementById('resize-reset-btn');
+
     let currentFile = null;
     let originalWidth = 0;
     let originalHeight = 0;
     let currentAspectRatio = 0;
+    let blobsToMerge = [];
 
     // --- Tab Switching ---
     tabs.forEach(tab => {
@@ -36,7 +46,9 @@ document.addEventListener('DOMContentLoaded', () => {
             tabs.forEach(t => t.classList.remove('active'));
             tabContents.forEach(c => c.classList.remove('active'));
             tab.classList.add('active');
-            document.getElementById(tab.dataset.tab).classList.add('active');
+
+            const targetId = tab.dataset.tab;
+            document.getElementById(targetId).classList.add('active');
         });
     });
 
@@ -50,6 +62,10 @@ document.addEventListener('DOMContentLoaded', () => {
     function handleImageUpload(file) {
         if (!file || !file.type.startsWith('image/')) return;
         currentFile = file;
+
+        // Reset UI functionality
+        resizeResetBtn.classList.add('hidden');
+        downloadBtn.textContent = "Download Resized Image";
 
         const reader = new FileReader();
         reader.onload = (e) => {
@@ -109,6 +125,19 @@ document.addEventListener('DOMContentLoaded', () => {
         link.download = `resized-${currentFile.name}`;
         link.href = dataUrl;
         link.click();
+
+        // Show Reset Button
+        resizeResetBtn.classList.remove('hidden');
+        downloadBtn.textContent = "Download Again";
+    });
+
+    resizeResetBtn.addEventListener('click', () => {
+        currentFile = null;
+        resizerInput.value = '';
+        resizerWorkspace.classList.add('hidden');
+        resizerZone.classList.remove('hidden');
+        resizeResetBtn.classList.add('hidden');
+        downloadBtn.textContent = "Download Resized Image";
     });
 
 
@@ -189,6 +218,98 @@ document.addEventListener('DOMContentLoaded', () => {
         link.download = `${nameWithoutExt}.${fixedExtension}`;
         link.href = URL.createObjectURL(fixedBlob);
         link.click();
+    });
+
+    // --- PDF Merger Logic ---
+    mergerZone.addEventListener('click', () => mergerInput.click());
+    mergerInput.addEventListener('change', (e) => handleMergerUpload(e.target.files));
+    setupDragDrop(mergerZone, (file) => {
+        // Drag drop usually returns one file in this helper, need to update helper or handle list
+        // For now, simpler to just support input for multiple files or single drag
+        if (file) handleMergerUpload([file]);
+    });
+
+    // Better Drag n Drop for multiple files
+    mergerZone.addEventListener('drop', (e) => {
+        e.preventDefault();
+        mergerZone.classList.remove('dragover');
+        if (e.dataTransfer.files.length) {
+            handleMergerUpload(e.dataTransfer.files);
+        }
+    });
+
+    function handleMergerUpload(files) {
+        if (!files || files.length === 0) return;
+
+        mergerZone.classList.add('hidden');
+        mergerWorkspace.classList.remove('hidden');
+
+        // Reset state for new batch if starting fresh or just adding
+        // Ideally we keep adding? User request implies "Start Over".
+        // Current implementation appends.
+
+        // Ensure reset button is hidden initially
+        mergerResetBtn.classList.add('hidden');
+        mergeBtn.textContent = "Merge PDFs";
+
+        // Add to list
+        for (let file of files) {
+            if (file.type === "application/pdf") {
+                blobsToMerge.push(file);
+                addFileToList(file);
+            }
+        }
+    }
+
+    function addFileToList(file) {
+        const li = document.createElement('li');
+        li.textContent = `${file.name} (${(file.size / 1024).toFixed(1)} KB)`;
+        mergerFileList.appendChild(li);
+    }
+
+    mergeBtn.addEventListener('click', async () => {
+        if (blobsToMerge.length < 2) {
+            alert("Please select at least 2 PDF files to merge.");
+            return;
+        }
+
+        try {
+            const { PDFDocument } = PDFLib;
+            const mergedPdf = await PDFDocument.create();
+
+            for (let file of blobsToMerge) {
+                const arrayBuffer = await file.arrayBuffer();
+                const pdf = await PDFDocument.load(arrayBuffer);
+                const copiedPages = await mergedPdf.copyPages(pdf, pdf.getPageIndices());
+                copiedPages.forEach((page) => mergedPdf.addPage(page));
+            }
+
+            const pdfBytes = await mergedPdf.save();
+            const blob = new Blob([pdfBytes], { type: 'application/pdf' });
+
+            const link = document.createElement('a');
+            link.href = URL.createObjectURL(blob);
+            link.download = `merged-${Date.now()}.pdf`;
+            link.click();
+
+            // Show Reset Button
+            mergerResetBtn.classList.remove('hidden');
+            mergeBtn.textContent = "Merge Again";
+
+        } catch (error) {
+            console.error(error);
+            alert("Error merging PDFs. Ensure valid PDF files.");
+        }
+    });
+
+    mergerResetBtn.addEventListener('click', () => {
+        blobsToMerge = [];
+        mergerFileList.innerHTML = '';
+        mergerInput.value = '';
+        mergerWorkspace.classList.add('hidden');
+        mergerZone.classList.remove('hidden');
+        mergerResetBtn.classList.add('hidden');
+        mergeBtn.textContent = "Merge PDFs";
     });
 
     // --- Shared Utilities ---
