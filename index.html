@@ -1,18 +1,23 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>File & Image Utility | Resizer & Fixer</title>
-    
+
     <!-- Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700&display=swap" rel="stylesheet">
-    
+
+    <!-- PDF Lib -->
+    <script src="https://unpkg.com/pdf-lib@1.17.1/dist/pdf-lib.min.js"></script>
+
     <!-- Styles -->
     <link rel="stylesheet" href="style.css">
 </head>
+
 <body>
     <div class="app-background">
         <div class="blob blob-1"></div>
@@ -26,14 +31,18 @@
             <p>Secure, offline tools for your daily needs.</p>
         </header>
 
-        <nav class="tabs">
-            <button class="tab-btn active" data-tab="resizer">
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><circle cx="8.5" cy="8.5" r="1.5"></circle><polyline points="21 15 16 10 5 21"></polyline></svg>
-                Image Resizer
+        <nav class="feature-menu">
+            <button class="feature-btn active" data-tab="resizer">
+                <span class="icon">🖼️</span>
+                <span class="text">Image Resizer</span>
             </button>
-            <button class="tab-btn" data-tab="fixer">
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M13 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"></path><polyline points="13 2 13 9 20 9"></polyline></svg>
-                Extension Fixer
+            <button class="feature-btn" data-tab="fixer">
+                <span class="icon">🧩</span>
+                <span class="text">Extension Fixer</span>
+            </button>
+            <button class="feature-btn" data-tab="merger">
+                <span class="icon">📑</span>
+                <span class="text">PDF Merger</span>
             </button>
         </nav>
 
@@ -74,6 +83,8 @@
                             <span id="quality-value">0.9</span>
                         </div>
                         <button id="download-btn" class="action-btn">Download Resized Image</button>
+                        <button id="resize-reset-btn" class="action-btn secondary hidden"
+                            style="margin-top: 1rem;">Resize Another Image</button>
                     </div>
                 </div>
             </section>
@@ -98,9 +109,30 @@
                     <button id="fix-download-btn" class="action-btn hidden">Fix & Download</button>
                 </div>
             </section>
+
+            <!-- PDF Merger Section -->
+            <section id="merger" class="tab-content">
+                <div class="upload-zone" id="merger-drop-zone">
+                    <div class="icon-large">📑</div>
+                    <h3>Drag & Drop PDFs</h3>
+                    <p>or click to browse (Select multiple PDFs)</p>
+                    <input type="file" id="merger-input" accept="application/pdf" multiple hidden>
+                </div>
+
+                <div class="workspace hidden" id="merger-workspace">
+                    <div class="file-list-container">
+                        <h4>Files to Merge:</h4>
+                        <ul id="merger-file-list" class="file-list"></ul>
+                    </div>
+                    <button id="merge-btn" class="action-btn">Merge PDFs</button>
+                    <button id="merger-reset-btn" class="action-btn secondary hidden" style="margin-top: 1rem;">Merge
+                        Another Batch</button>
+                </div>
+            </section>
         </main>
     </div>
 
     <script src="app.js"></script>
 </body>
+
 </html>
